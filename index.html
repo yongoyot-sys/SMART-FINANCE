@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0A192F">
+    <meta name="description" content="SMART FINANCE - Personal Finance & Saving Management PWA">
+    <title>SMART FINANCE — Personal Finance & Saving Management</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/images/icon-192.png">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- =====================================================================
+         0. SECURITY PIN LOCK OVERLAY (Muncul jika PIN diaktifkan)
+    ====================================================================== -->
+    <div id="pin-lock-screen" class="pin-overlay" style="display: none;">
+        <div class="pin-box">
+            <div class="brand-logo navy"><i class='bx bxs-bank'></i><span>SMART<strong>FINANCE</strong></span></div>
+            <h3>Masukkan Security PIN</h3>
+            <p>Aplikasi terkunci untuk melindungi data keuangan Anda</p>
+            <input type="password" id="pin-unlock-input" maxlength="6" placeholder="••••••" class="pin-input">
+            <button id="btn-unlock-app" class="btn btn-primary-navy btn-block">Buka Aplikasi</button>
+            <p id="pin-error-msg" class="text-red" style="display:none; margin-top:8px;">PIN salah, silakan coba lagi.</p>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         1. LANDING VIEW (Halaman Depan Publik)
+    ====================================================================== -->
+    <div id="view-landing" class="spa-root-view">
+        <header class="landing-navbar">
+            <div class="brand-logo"><i class='bx bxs-bank'></i><span>SMART<strong>FINANCE</strong></span></div>
+            <div class="landing-actions">
+                <button id="btn-install-pwa" class="btn btn-outline-light" style="display:none;"><i class='bx bx-download'></i> Install App</button>
+                <button onclick="navigateRoot('auth', 'login')" class="btn btn-light">Masuk</button>
+                <button onclick="navigateRoot('auth', 'register')" class="btn btn-primary-green">Daftar Gratis</button>
+            </div>
+        </header>
+
+        <section class="hero-section">
+            <div class="hero-content">
+                <span class="hero-badge">Online & Offline PWA Ready</span>
+                <h1>Kendalikan Keuangan Pribadi & Capai Target Tabungan Anda</h1>
+                <p>Aplikasi pengelolaan keuangan bergaya perbankan modern. Catat pemasukan, kontrol pengeluaran harian, atur anggaran bulanan, dan pantau tabungan kapan saja—bahkan tanpa internet.</p>
+                <div class="hero-cta-group">
+                    <button onclick="navigateRoot('auth', 'login')" class="btn btn-primary-green btn-lg"><i class='bx bx-log-in-circle'></i> Mulai Sekarang</button>
+                    <button onclick="startGuestMode()" class="btn btn-outline-white btn-lg"><i class='bx bx-hdd'></i> Mode Tamu (Penyimpanan Lokal)</button>
+                </div>
+                <p class="hero-note"><i class='bx bx-shield-quarter'></i> Mode Tamu menyimpan data 100% di memori lokal perangkat Anda (IndexedDB) dan dapat digabungkan ke akun permanen kapan saja.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- =====================================================================
+         2. AUTH VIEW (Login & Register 5 Metode Masuk)
+    ====================================================================== -->
+    <div id="view-auth" class="spa-root-view auth-body" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div onclick="navigateRoot('landing')" class="brand-logo navy" style="cursor:pointer;"><i class='bx bxs-bank'></i><span>SMART<strong>FINANCE</strong></span></div>
+                <h2 id="auth-title">Selamat Datang Kembali</h2>
+                <p id="auth-subtitle">Masuk untuk mengakses dan menyinkronkan data keuangan Anda</p>
+            </div>
+
+            <!-- Tab Switch Login / Register -->
+            <div class="auth-tabs">
+                <button id="tab-login" class="auth-tab active" onclick="switchAuthTab('login')">Masuk</button>
+                <button id="tab-register" class="auth-tab" onclick="switchAuthTab('register')">Daftar Akun</button>
+            </div>
+
+            <!-- Form Login Email -->
+            <form id="form-login" class="auth-form">
+                <div class="form-group">
+                    <label>Alamat Email</label>
+                    <input type="email" id="login-email" placeholder="nama@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Kata Sandi</label>
+                    <input type="password" id="login-password" placeholder="Masukkan kata sandi" required>
+                </div>
+                <button type="submit" class="btn btn-primary-navy btn-block">Masuk dengan Email</button>
+            </form>
+
+            <!-- Form Register Email -->
+            <form id="form-register" class="auth-form" style="display: none;">
+                <div id="guest-merge-notice" class="alert-info" style="display: none;">
+                    <i class='bx bx-info-circle'></i>
+                    <span>Data <strong>Mode Tamu</strong> di perangkat ini akan otomatis digabungkan ke akun baru Anda.</span>
+                </div>
+                <div class="form-group">
+                    <label>Nama Lengkap</label>
+                    <input type="text" id="reg-name" placeholder="Nama lengkap Anda" required>
+                </div>
+                <div class="form-group">
+                    <label>Alamat Email</label>
+                    <input type="email" id="reg-email" placeholder="nama@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Kata Sandi</label>
+                    <input type="password" id="reg-password" placeholder="Minimal 8 karakter" minlength="8" required>
+                </div>
+                <button type="submit" class="btn btn-primary-green btn-block">Buat Akun Permanen</button>
+            </form>
+
+            <div class="auth-divider"><span>atau masuk dengan</span></div>
+
+            <!-- OAuth 2.0 / OpenID Connect -->
+            <div class="oauth-buttons">
+                <a href="/auth/google" class="btn-oauth google"><i class='bx bxl-google'></i> Google Login</a>
+                <a href="/auth/facebook" class="btn-oauth facebook"><i class='bx bxl-facebook-circle'></i> Facebook Login</a>
+                <a href="/auth/apple" class="btn-oauth apple"><i class='bx bxl-apple'></i> Sign in with Apple</a>
+            </div>
+
+            <div class="auth-divider"><span>tanpa pendaftaran</span></div>
+            <button type="button" onclick="startGuestMode()" class="btn btn-outline-green btn-block">
+                <i class='bx bx-hdd'></i> Masuk sebagai Tamu (Memori Lokal)
+            </button>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         3. MAIN APPLICATION SHELL (Dashboard & Seluruh Fitur Utama)
+    ====================================================================== -->
+    <div id="view-app" class="spa-root-view app-body" style="display: none;">
+
+        <!-- Indikator Online / Offline Sync -->
+        <div id="network-banner" class="network-banner online">
+            <span id="network-status-dot" class="status-dot"></span>
+            <span id="network-status-text">Online • Memori Lokal Siap</span>
+        </div>
+
+        <div class="app-container">
+            <!-- Sidebar Navigasi (Desktop/Laptop) -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="brand-logo"><i class='bx bxs-bank'></i><span>SMART<strong>FINANCE</strong></span></div>
+                </div>
+                <nav class="sidebar-nav">
+                    <button class="nav-item active" data-page="dashboard" onclick="navigatePage('dashboard')"><i class='bx bxs-dashboard'></i><span>Dashboard</span></button>
+                    <button class="nav-item" data-page="income" onclick="navigatePage('income')"><i class='bx bx-trending-up'></i><span>Pemasukan</span></button>
+                    <button class="nav-item" data-page="expense" onclick="navigatePage('expense')"><i class='bx bx-trending-down'></i><span>Pengeluaran</span></button>
+                    <button class="nav-item" data-page="savings" onclick="navigatePage('savings')"><i class='bx bxs-coin-stack'></i><span>Tabungan & Kalkulator</span></button>
+                    <button class="nav-item" data-page="budget" onclick="navigatePage('budget')"><i class='bx bxs-pie-chart-alt-2'></i><span>Anggaran Bulanan</span></button>
+                    <button class="nav-item" data-page="wallet" onclick="navigatePage('wallet')"><i class='bx bxs-wallet'></i><span>Multi-Dompet</span></button>
+                    <button class="nav-item" data-page="history" onclick="navigatePage('history')"><i class='bx bx-history'></i><span>Riwayat Transaksi</span></button>
+                    <button class="nav-item" data-page="report" onclick="navigatePage('report')"><i class='bx bxs-report'></i><span>Laporan & Ekspor</span></button>
+                </nav>
+                <div class="sidebar-footer">
+                    <button class="nav-item" data-page="profile" onclick="navigatePage('profile')"><i class='bx bxs-user-circle'></i><span>Profil & Sinkronisasi</span></button>
+                    <button class="nav-item" data-page="settings" onclick="navigatePage('settings')"><i class='bx bxs-cog'></i><span>Pengaturan & PIN</span></button>
+                </div>
+            </aside>
+
+            <!-- Area Utama -->
+            <main class="main-content">
+                <header class="topbar">
+                    <div class="topbar-left">
+                        <h1 id="topbar-title" class="page-title">Dashboard</h1>
+                        <p id="topbar-subtitle" class="page-subtitle">Ringkasan kondisi keuangan Anda</p>
+                    </div>
+                    <div class="topbar-right">
+                        <span id="account-mode-badge" class="badge-guest">Mode Tamu (Lokal)</span>
+                        <button id="btn-sync-now" class="btn-icon" title="Sinkronkan Data"><i class='bx bx-sync'></i></button>
+                        <button onclick="navigatePage('profile')" class="user-avatar" id="header-avatar">SF</button>
+                    </div>
+                </header>
+
+                <div class="content-wrapper">
+
+                    <!-- PAGE 1: DASHBOARD -->
+                    <section id="page-dashboard" class="app-page active">
+                        <div id="guest-upgrade-banner" class="guest-banner">
+                            <div class="guest-banner-info">
+                                <i class='bx bx-cloud-upload'></i>
+                                <div>
+                                    <strong>Mode Tamu Aktif (Penyimpanan Memori Lokal)</strong>
+                                    <p>Data tersimpan di perangkat ini. Hubungkan ke akun permanen untuk backup cloud.</p>
+                                </div>
+                            </div>
+                            <button onclick="navigateRoot('auth', 'register')" class="btn btn-primary-green btn-sm">Hubungkan Akun</button>
+                        </div>
+
+                        <div class="summary-cards-grid">
+                            <div class="stat-card primary-navy">
+                                <div class="stat-card-header"><span>Total Saldo Bersih</span><i class='bx bxs-wallet'></i></div>
+                                <h2 class="stat-amount" id="dash-total-balance">Rp 0</h2>
+                                <div class="stat-card-footer"><span id="dash-wallet-count">0 Dompet</span><button onclick="navigatePage('wallet')" class="link-light">Kelola →</button></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header"><span>Pemasukan Bulan Ini</span><span class="icon-badge green"><i class='bx bx-trending-up'></i></span></div>
+                                <h2 class="stat-amount text-green" id="dash-monthly-income">Rp 0</h2>
+                                <div class="stat-card-footer"><button onclick="navigatePage('income')" class="link-navy">+ Tambah Pemasukan</button></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header"><span>Pengeluaran Bulan Ini</span><span class="icon-badge red"><i class='bx bx-trending-down'></i></span></div>
+                                <h2 class="stat-amount text-red" id="dash-monthly-expense">Rp 0</h2>
+                                <div class="stat-card-footer"><button onclick="navigatePage('expense')" class="link-navy">+ Catat Pengeluaran</button></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header"><span>Total Tabungan</span><span class="icon-badge navy"><i class='bx bxs-coin-stack'></i></span></div>
+                                <h2 class="stat-amount" id="dash-total-savings">Rp 0</h2>
+                                <div class="stat-card-footer"><button onclick="navigatePage('savings')" class="link-navy">Lihat Target →</button></div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-middle-grid">
+                            <div class="panel-card">
+                                <div class="panel-header"><h3>Grafik Statistik Keuangan</h3></div>
+                                <div class="chart-container"><canvas id="cashflowChart"></canvas></div>
+                            </div>
+                            <div class="panel-card">
+                                <div class="panel-header"><h3>Anggaran Bulanan</h3><button onclick="navigatePage('budget')" class="link-sm">Atur</button></div>
+                                <div id="dash-budget-list" class="budget-progress-list"><p class="empty-state-text">Belum ada anggaran diatur.</p></div>
+                            </div>
+                        </div>
+
+                        <div class="panel-card">
+                            <div class="panel-header"><h3>Transaksi Terbaru</h3><button onclick="navigatePage('history')" class="link-sm">Lihat Semua</button></div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Dompet</th><th>Kategori</th><th class="text-right">Nominal</th></tr></thead>
+                                    <tbody id="dash-recent-transactions"><tr><td colspan="5" class="text-center empty-state-text">Belum ada transaksi.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 2: INCOME (Pemasukan) -->
+                    <section id="page-income" class="app-page" style="display: none;">
+                        <div class="two-col-grid">
+                            <div class="panel-card">
+                                <h3>Catat Pemasukan Baru</h3>
+                                <form id="form-add-income" class="app-form">
+                                    <div class="form-group"><label>Nominal (Rp)</label><input type="number" id="inc-amount" min="1" placeholder="Contoh: 5000000" required></div>
+                                    <div class="form-group">
+                                        <label>Sumber Pemasukan</label>
+                                        <select id="inc-category" required>
+                                            <option value="Gaji">Gaji Bulanan</option>
+                                            <option value="Bonus">Bonus / THR</option>
+                                            <option value="Bisnis">Hasil Usaha / Freelance</option>
+                                            <option value="Investasi">Dividen / Investasi</option>
+                                            <option value="Lainnya">Pemasukan Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group"><label>Masuk ke Dompet</label><select id="inc-wallet" class="wallet-select-dropdown" required></select></div>
+                                    <div class="form-group"><label>Tanggal</label><input type="date" id="inc-date" required></div>
+                                    <div class="form-group"><label>Catatan</label><input type="text" id="inc-note" placeholder="Contoh: Gaji bulan November"></div>
+                                    <button type="submit" class="btn btn-primary-green btn-block"><i class='bx bx-plus-circle'></i> Simpan Pemasukan</button>
+                                </form>
+                            </div>
+                            <div class="panel-card">
+                                <h3>Riwayat Pemasukan</h3>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead><tr><th>Tanggal</th><th>Sumber</th><th>Dompet</th><th class="text-right">Nominal</th></tr></thead>
+                                        <tbody id="list-income-table"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 3: EXPENSE (Pengeluaran - Kebutuhan vs Keinginan) -->
+                    <section id="page-expense" class="app-page" style="display: none;">
+                        <div class="two-col-grid">
+                            <div class="panel-card">
+                                <h3>Catat Pengeluaran Baru</h3>
+                                <form id="form-add-expense" class="app-form">
+                                    <div class="form-group"><label>Nominal (Rp)</label><input type="number" id="exp-amount" min="1" placeholder="Contoh: 50000" required></div>
+                                    <div class="form-group">
+                                        <label>Jenis Pengeluaran (Kebutuhan vs Keinginan)</label>
+                                        <select id="exp-type" required>
+                                            <option value="Kebutuhan">Kebutuhan Pokok (Needs)</option>
+                                            <option value="Keinginan">Keinginan / Gaya Hidup (Wants)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Kategori</label>
+                                        <select id="exp-category" required>
+                                            <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                            <option value="Transportasi">Transportasi & BBM</option>
+                                            <option value="Tagihan & Utilitas">Tagihan Listrik, Air, Internet</option>
+                                            <option value="Belanja">Belanja Kebutuhan</option>
+                                            <option value="Hiburan">Hiburan & Nongkrong</option>
+                                            <option value="Kesehatan">Kesehatan</option>
+                                            <option value="Lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group"><label>Sumber Dompet</label><select id="exp-wallet" class="wallet-select-dropdown" required></select></div>
+                                    <div class="form-group"><label>Tanggal</label><input type="date" id="exp-date" required></div>
+                                    <div class="form-group"><label>Catatan</label><input type="text" id="exp-note" placeholder="Contoh: Makan siang"></div>
+                                    <button type="submit" class="btn btn-primary-navy btn-block"><i class='bx bx-minus-circle'></i> Simpan Pengeluaran</button>
+                                </form>
+                            </div>
+                            <div class="panel-card">
+                                <h3>Riwayat Pengeluaran</h3>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead><tr><th>Tanggal</th><th>Kategori</th><th>Jenis</th><th class="text-right">Nominal</th></tr></thead>
+                                        <tbody id="list-expense-table"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 4: SAVINGS (Target Tabungan, Progress, Reminder & Kalkulator) -->
+                    <section id="page-savings" class="app-page" style="display: none;">
+                        <div class="two-col-grid">
+                            <!-- Form Target Tabungan -->
+                            <div class="panel-card">
+                                <h3>Buat Target Tabungan (Saving Goal)</h3>
+                                <form id="form-add-saving" class="app-form">
+                                    <div class="form-group"><label>Nama Target</label><input type="text" id="sav-title" placeholder="Contoh: Dana Darurat / Beli Laptop" required></div>
+                                    <div class="form-group"><label>Target Nominal (Rp)</label><input type="number" id="sav-target" min="1000" placeholder="10000000" required></div>
+                                    <div class="form-group"><label>Saldo Awal Terkumpul (Rp)</label><input type="number" id="sav-current" min="0" value="0"></div>
+                                    <div class="form-group"><label>Target Tanggal Tercapai</label><input type="date" id="sav-deadline" required></div>
+                                    <div class="form-group">
+                                        <label>Pengingat Menabung (Saving Reminder)</label>
+                                        <select id="sav-reminder">
+                                            <option value="none">Tidak Aktif</option>
+                                            <option value="daily">Setiap Hari</option>
+                                            <option value="weekly">Setiap Minggu</option>
+                                            <option value="monthly">Setiap Bulan</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary-green btn-block">Simpan Target Tabungan</button>
+                                </form>
+                            </div>
+
+                            <!-- Kalkulator Target Tabungan -->
+                            <div class="panel-card">
+                                <h3><i class='bx bx-calculator'></i> Kalkulator Target Tabungan</h3>
+                                <p class="page-subtitle">Hitung berapa yang harus disisihkan secara rutin</p>
+                                <div class="app-form">
+                                    <div class="form-group"><label>Target Dana (Rp)</label><input type="number" id="calc-target" placeholder="12000000"></div>
+                                    <div class="form-group"><label>Jangka Waktu (Bulan)</label><input type="number" id="calc-months" placeholder="12" min="1"></div>
+                                    <button type="button" id="btn-calc-saving" class="btn btn-outline-navy btn-block">Hitung Rencana Menabung</button>
+                                    <div id="calc-result-box" class="calc-result-box" style="margin-top:15px; display:none;">
+                                        <p>Setoran per Bulan: <strong id="calc-res-monthly" class="text-green">Rp 0</strong></p>
+                                        <p>Setoran per Minggu: <strong id="calc-res-weekly">Rp 0</strong></p>
+                                        <p>Setoran per Hari: <strong id="calc-res-daily">Rp 0</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-card" style="margin-top: 20px;">
+                            <h3>Daftar Progres Tabungan Anda</h3>
+                            <div id="savings-goals-grid" class="savings-cards-grid"></div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 5: MONTHLY BUDGET (Anggaran Bulanan) -->
+                    <section id="page-budget" class="app-page" style="display: none;">
+                        <div class="two-col-grid">
+                            <div class="panel-card">
+                                <h3>Atur Anggaran Bulanan</h3>
+                                <form id="form-add-budget" class="app-form">
+                                    <div class="form-group">
+                                        <label>Kategori Pengeluaran</label>
+                                        <select id="bud-category" required>
+                                            <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                            <option value="Transportasi">Transportasi & BBM</option>
+                                            <option value="Tagihan & Utilitas">Tagihan Listrik, Air, Internet</option>
+                                            <option value="Belanja">Belanja Kebutuhan</option>
+                                            <option value="Hiburan">Hiburan & Nongkrong</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group"><label>Batas Maksimal Bulan Ini (Rp)</label><input type="number" id="bud-limit" min="1000" placeholder="1500000" required></div>
+                                    <button type="submit" class="btn btn-primary-navy btn-block">Simpan Batas Anggaran</button>
+                                </form>
+                            </div>
+                            <div class="panel-card">
+                                <h3>Monitoring Anggaran Bulan Ini</h3>
+                                <div id="budget-detail-list" class="budget-progress-list"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 6: MULTIPLE WALLETS (Manajemen Dompet) -->
+                    <section id="page-wallet" class="app-page" style="display: none;">
+                        <div class="two-col-grid">
+                            <div class="panel-card">
+                                <h3>Tambah Dompet / Rekening</h3>
+                                <form id="form-add-wallet" class="app-form">
+                                    <div class="form-group"><label>Nama Dompet</label><input type="text" id="wal-name" placeholder="Contoh: BCA Utama / Dompet Tunai / GoPay" required></div>
+                                    <div class="form-group">
+                                        <label>Jenis</label>
+                                        <select id="wal-type">
+                                            <option value="Bank">Rekening Bank</option>
+                                            <option value="Cash">Uang Tunai</option>
+                                            <option value="E-Wallet">E-Wallet</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group"><label>Saldo Awal (Rp)</label><input type="number" id="wal-balance" value="0" required></div>
+                                    <button type="submit" class="btn btn-primary-green btn-block">Tambah Dompet</button>
+                                </form>
+                            </div>
+                            <div class="panel-card">
+                                <h3>Daftar Dompet Aktif</h3>
+                                <div id="wallet-cards-list" class="wallet-grid"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 7: TRANSACTION HISTORY (Riwayat Transaksi) -->
+                    <section id="page-history" class="app-page" style="display: none;">
+                        <div class="panel-card">
+                            <div class="panel-header">
+                                <h3>Semua Riwayat Transaksi</h3>
+                                <div class="filter-bar">
+                                    <select id="filter-history-type" class="form-select-sm">
+                                        <option value="all">Semua Tipe</option>
+                                        <option value="income">Pemasukan</option>
+                                        <option value="expense">Pengeluaran</option>
+                                    </select>
+                                    <input type="text" id="filter-history-search" placeholder="Cari catatan..." class="form-input-sm">
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead><tr><th>Tanggal</th><th>Tipe</th><th>Kategori</th><th>Dompet</th><th>Catatan</th><th class="text-right">Nominal</th><th>Aksi</th></tr></thead>
+                                    <tbody id="full-history-table"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 8: FINANCIAL REPORT (Laporan & Export PDF/Excel) -->
+                    <section id="page-report" class="app-page" style="display: none;">
+                        <div class="panel-card">
+                            <div class="panel-header">
+                                <div>
+                                    <h3>Laporan Keuangan & Ekspor Data</h3>
+                                    <p class="page-subtitle">Unduh ringkasan laporan ke format PDF atau Excel (CSV/XLSX)</p>
+                                </div>
+                                <div class="export-buttons">
+                                    <button id="btn-export-excel" class="btn btn-primary-green"><i class='bx bxs-file-export'></i> Export Excel</button>
+                                    <button id="btn-export-pdf" class="btn btn-primary-navy"><i class='bx bxs-file-pdf'></i> Export PDF</button>
+                                </div>
+                            </div>
+                            <div class="summary-cards-grid" style="margin-top:20px;">
+                                <div class="stat-card"><span>Total Pemasukan</span><h3 id="rep-total-in" class="text-green">Rp 0</h3></div>
+                                <div class="stat-card"><span>Total Pengeluaran</span><h3 id="rep-total-out" class="text-red">Rp 0</h3></div>
+                                <div class="stat-card"><span>Selisih Bersih (Net Cashflow)</span><h3 id="rep-net">Rp 0</h3></div>
+                            </div>
+                            <div class="chart-container" style="margin-top:20px;">
+                                <canvas id="reportCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 9: PROFILE & ACCOUNT MERGING -->
+                    <section id="page-profile" class="app-page" style="display: none;">
+                        <div class="panel-card" style="max-width: 600px;">
+                            <h3>Profil Pengguna & Status Penyimpanan</h3>
+                            <div class="profile-info-box">
+                                <p><strong>Nama:</strong> <span id="prof-name">Pengguna Tamu</span></p>
+                                <p><strong>Status Akun:</strong> <span id="prof-status">Akun Tamu (Penyimpanan Lokal IndexedDB)</span></p>
+                                <p><strong>Sinkronisasi Cloud:</strong> <span id="prof-sync">Belum Terhubung</span></p>
+                            </div>
+                            <div id="prof-merge-section" style="margin-top: 20px;">
+                                <p>Ingin mengamankan data lokal Anda ke server cloud agar bisa dibuka dari HP dan Laptop sekaligus?</p>
+                                <button onclick="navigateRoot('auth', 'register')" class="btn btn-primary-green" style="margin-top:10px;">
+                                    <i class='bx bx-git-merge'></i> Gabungkan Data Tamu ke Akun Permanen
+                                </button>
+                            </div>
+                            <hr style="margin: 20px 0;">
+                            <button id="btn-logout" class="btn btn-outline-red">Keluar / Reset Sesi</button>
+                        </div>
+                    </section>
+
+                    <!-- PAGE 10: SETTINGS & SECURITY PIN -->
+                    <section id="page-settings" class="app-page" style="display: none;">
+                        <div class="panel-card" style="max-width: 600px;">
+                            <h3>Keamanan Aplikasi (Security PIN)</h3>
+                            <p class="page-subtitle">Aktifkan PIN 6 digit untuk mengunci akses aplikasi di perangkat ini</p>
+                            <form id="form-set-pin" class="app-form" style="margin-top:15px;">
+                                <div class="form-group">
+                                    <label>PIN Baru (6 Digit Angka)</label>
+                                    <input type="password" id="new-pin-input" maxlength="6" pattern="\d{6}" placeholder="Contoh: 123456" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary-navy">Simpan & Aktifkan PIN</button>
+                                <button type="button" id="btn-disable-pin" class="btn btn-outline-red">Nonaktifkan PIN</button>
+                            </form>
+                            <hr style="margin: 25px 0;">
+                            <h3>Manajemen Memori Lokal</h3>
+                            <p class="page-subtitle">Seluruh data transaksi saat ini tersimpan di IndexedDB browser Anda.</p>
+                            <button type="button" id="btn-backup-json" class="btn btn-outline-green" style="margin-top:10px;">
+                                <i class='bx bx-download'></i> Unduh Cadangan Lokal (JSON)
+                            </button>
+                        </div>
+                    </section>
+
+                </div>
+            </main>
+        </div>
+
+        <!-- Bottom Navigation (Khusus Tampilan HP) -->
+        <nav class="mobile-bottom-nav">
+            <button class="mobile-nav-item active" data-page="dashboard" onclick="navigatePage('dashboard')"><i class='bx bxs-dashboard'></i><span>Home</span></button>
+            <button class="mobile-nav-item" data-page="history" onclick="navigatePage('history')"><i class='bx bx-history'></i><span>Riwayat</span></button>
+            <button class="mobile-nav-fab" onclick="navigatePage('expense')" title="Catat Transaksi"><i class='bx bx-plus'></i></button>
+            <button class="mobile-nav-item" data-page="savings" onclick="navigatePage('savings')"><i class='bx bxs-coin-stack'></i><span>Tabungan</span></button>
+            <button class="mobile-nav-item" data-page="settings" onclick="navigatePage('settings')"><i class='bx bx-cog'></i><span>Pengaturan</span></button>
+        </nav>
+    </div>
+
+    <!-- =====================================================================
+         CORE SCRIPTS: Chart.js, IndexedDB, SPA Router & Service Worker
+    ====================================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/db.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .catch(err => console.warn('SW gagal terdaftar:', err));
+            });
+        }
+    </script>
+</body>
+</html>
